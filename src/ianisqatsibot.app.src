@@ -1,0 +1,14 @@
+{application, ianisqatsibot,
+ [
+  {description, "An Erlang twitter bot library"},
+  {vsn, "1"},
+  {modules, [
+             ianisqatsibot
+            ]},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {env, []}
+ ]}.
