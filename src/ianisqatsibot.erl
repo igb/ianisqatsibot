@@ -1,5 +1,5 @@
 -module(ianisqatsibot).
--export([get_alt_texts/0,get_previous_tweets/0,init/0,get_tweet_texts/1,run/0,run/1,bootstrap/1,decode_from_file/1,encode_to_file/2]).
+-export([get_alt_texts/0,get_previous_tweets/0,init/0,get_tweet_texts/1,run/0,run/1,bootstrap/1,decode_from_file/1,encode_to_file/2,bootstrap_loop/1]).
 
 
 init()->
@@ -7,31 +7,40 @@ init()->
 		      application:start(X) end,
 	      [inets, crypto, public_key, ssl]).
 
+
+bootstrap_loop(FileName) ->
+    Alts=decode_from_file(FileName),
+    run(Alts),
+    timer:sleep(1000 * 60 * 60 * 6),
+    bootstrap_loop(FileName).
+
 bootstrap(FileName) ->
     {ok, Device} = file:open(FileName, [read]),
     TweetIds = read_lines(Device, []),
     Alts=lists:map(fun(X)->  
-		      io:format("~p~n", [X]),
-		      timer:sleep(1000),
-		      {Tweet}=erlybird:get_tweet(X, [{"include_ext_alt_text", "true"}]),
-		      case lists:keyfind(<<"retweeted_status">>, 1, Tweet) of
-			  false ->
-			      get_alt_text(Tweet);
-			      _ -> false
-		      end	  
-	      end, TweetIds),
+			   io:format("~p~n", [X]),
+			   timer:sleep(1000),
+			   {Tweet}=erlybird:get_tweet(X, [{"include_ext_alt_text", "true"}]),
+			   case lists:keyfind(<<"retweeted_status">>, 1, Tweet) of
+			       false ->
+				   get_alt_text(Tweet);
+			       _ -> false
+			   end	  
+		   end, TweetIds),
     FilteredAlts=lists:filter(fun(X)->
-			 case X of
-			     false ->
+				      case X of
+					  false ->
 				 false;
-			     [null] ->
-				 false;
-			     _  ->
-				 true
-			 end
-		 end, Alts),
+					  [null] ->
+					      false;
+					  _  ->
+					      true
+				      end
+			      end, Alts),
     FoldedAlts = lists:foldl(fun(X, Acc)-> lists:append(Acc, X) end, [], FilteredAlts),
-    %the above fold creates new nulls if one or more photos in a single tweet has no alt text so filter again
+    
+						% the above fold creates new nulls if one or more photos in
+						% a single tweet has no alt text so filter again
     lists:map(fun(X) -> 
 		      case X of
 			  null -> "";
@@ -51,6 +60,7 @@ encode_to_file(Alts, File)->
 				      [append])
               end,
 	      EncodedAlts).
+
 decode_from_file(FileName)->
     {ok, Device} = file:open(FileName, [read]),
     EncodedAlts=read_lines(Device, []),
