@@ -98,14 +98,14 @@ run(AltTextSourceScreenName, BotScreenName, AltTexts)->
     PreviousTweetsSet = sets:from_list(get_tweet_texts(PreviousTweets)),
   
    
-  
+    
     ReversedAltTexts = lists:reverse(AltTexts),
     FilteredReversedAltTexts = lists:filter(fun(X)->
 			 not sets:is_element(X, PreviousTweetsSet)
 		 end, ReversedAltTexts),
     [TweetBody|_] = FilteredReversedAltTexts,
     TweetBody,
-    io:format("~n~p~n", [TweetBody]),
+    io:format("~n~s~n", [TweetBody]),
     {Consumer, AccessToken, AccessSecret}=erlybird:get_secrets(),
     erlybird:post(TweetBody, Consumer, AccessToken, AccessSecret).
 
@@ -119,7 +119,22 @@ get_tweet_texts(Tweets)->
     lists:map(fun(X)->  
 		      {Tweet} = X,
 		      {<<"text">>, Text} = lists:keyfind(<<"text">>, 1, Tweet),
-		      binary_to_list(Text)
+		      
+		      % sanitize &amp;
+		      
+		      
+
+
+
+		      NonBinaryText = binary_to_list(Text),
+		      {ok, Mp}=re:compile("\\&amp;"),
+		      ReplacedText = re:replace(NonBinaryText, Mp, "\\&", [{return, list}]),
+		      ReplacedText
+		      
+
+			  
+			  
+
 	      end, Tweets).
 
 get_alt_text(Tweet)->
