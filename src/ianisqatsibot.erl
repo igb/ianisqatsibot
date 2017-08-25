@@ -129,14 +129,45 @@ get_tweet_texts(Tweets)->
 		      NonBinaryText = binary_to_list(Text),
 		      {ok, Mp}=re:compile("\\&amp;"),
 		      ReplacedText = re:replace(NonBinaryText, Mp, "\\&", [{return, list}]),
-		      ReplacedText
+		      ReplacedText,
+		      replace_urls(extract_urls(Tweet), ReplacedText)
 		      
+
 
 			  
 			  
 
 	      end, Tweets).
 
+
+extract_urls(Tweet)->
+    {<<"entities">>, {Entities}} = lists:keyfind(<<"entities">>, 1, Tweet),
+    {<<"urls">>, Urls} = lists:keyfind(<<"urls">>, 1, Entities),
+    extract_urls(Urls, []).
+
+
+extract_urls([H|T], Acc)-> 
+    {[{<<"url">>,Url},
+      {<<"expanded_url">>,ExpandedUrl},
+      {<<"display_url">>,_},
+      {<<"indices">>,_}]}=H,
+    NewAcc = lists:append(Acc, {binary_to_list(Url), binary_to_list(ExpandedUrl)}),
+    extract_urls(T, NewAcc);
+extract_urls([], NewAcc) ->
+    NewAcc.
+
+
+replace_urls([Urls|T], UnreplacedUrlText)->
+    {Old, New}=Urls,
+    {ok, Mp}=re:compile(Old),
+    ReplacedUrlText = re:replace(UnreplacedUrlText, Mp, New, [{return, list}]),
+    replace_urls(T, ReplacedUrlText);
+replace_urls([],UnreplacedUrlText) ->
+    UnreplacedUrlText.
+    
+
+
+     
 get_alt_text(Tweet)->
     case lists:keyfind(<<"extended_entities">>, 1, Tweet) of
 	false ->
@@ -184,6 +215,99 @@ get_alt_texts(ScreenName)->
 
 
 -ifdef(TEST).
+
+url_replacement_test()->
+    ExpectedUrlText = "A screenshot displaying at least four, stacked Safari pop-ups, each reading: 'From \"https://calendar.google.com\":'.",
+    UnreplacedUrlText = "A screenshot displaying at least four, stacked Safari pop-ups, each reading: 'From \"https://t.co/pHNV2XySXF\":'.",
+    ReplacedUrlText = replace_urls([{"https://t.co/pHNV2XySXF","https://calendar.google.com"}], UnreplacedUrlText),
+    ?assert(ReplacedUrlText =:= ExpectedUrlText).
+
+url_extraction_test()->
+    Tweet = {[{<<"created_at">>,<<"Tue Aug 22 15:02:46 +0000 2017">>},
+  {<<"id">>,900010363797688320},
+  {<<"id_str">>,<<"900010363797688320">>},
+  {<<"text">>,
+   <<"A screenshot displaying at least four, stacked Safari pop-ups, each reading: 'From \"https://t.co/pHNV2XySXF\":'.">>},
+  {<<"truncated">>,false},
+  {<<"entities">>,
+   {[{<<"hashtags">>,[]},
+     {<<"symbols">>,[]},
+     {<<"user_mentions">>,[]},
+     {<<"urls">>,
+      [{[{<<"url">>,<<"https://t.co/pHNV2XySXF">>},
+         {<<"expanded_url">>,<<"https://calendar.google.com">>},
+         {<<"display_url">>,<<"calendar.google.com">>},
+         {<<"indices">>,"Tk"}]}]}]}},
+  {<<"source">>,
+   <<"<a href=\"http://hccp.org\" rel=\"nofollow\">ianisqatsibot</a>">>},
+  {<<"in_reply_to_status_id">>,null},
+  {<<"in_reply_to_status_id_str">>,null},
+  {<<"in_reply_to_user_id">>,null},
+  {<<"in_reply_to_user_id_str">>,null},
+  {<<"in_reply_to_screen_name">>,null},
+  {<<"user">>,
+   {[{<<"id">>,767746267833180161},
+     {<<"id_str">>,<<"767746267833180161">>},
+     {<<"name">>,<<"IANISQATSI">>},
+     {<<"screen_name">>,<<"ianisqatsibot">>},
+     {<<"location">>,<<"San Francisco, CA">>},
+     {<<"description">>,
+      <<"This is a bot that tweets the alt-text from images contained in @igb's tweets.  Inspired by the awesome @__koyaanisqatsi.">>},
+     {<<"url">>,null},
+     {<<"entities">>,{[{<<"description">>,{[{<<"urls">>,[]}]}}]}},
+     {<<"protected">>,false},
+     {<<"followers_count">>,18},
+     {<<"friends_count">>,5},
+     {<<"listed_count">>,0},
+     {<<"created_at">>,<<"Mon Aug 22 15:32:29 +0000 2016">>},
+     {<<"favourites_count">>,11},
+     {<<"utc_offset">>,null},
+     {<<"time_zone">>,null},
+     {<<"geo_enabled">>,false},
+     {<<"verified">>,false},
+     {<<"statuses_count">>,267},
+     {<<"lang">>,<<"en">>},
+     {<<"contributors_enabled">>,false},
+     {<<"is_translator">>,false},
+     {<<"is_translation_enabled">>,false},
+     {<<"profile_background_color">>,<<"000000">>},
+     {<<"profile_background_image_url">>,
+      <<"http://abs.twimg.com/images/themes/theme1/bg.png">>},
+     {<<"profile_background_image_url_https">>,
+      <<"https://abs.twimg.com/images/themes/theme1/bg.png">>},
+     {<<"profile_background_tile">>,false},
+     {<<"profile_image_url">>,
+      <<"http://pbs.twimg.com/profile_images/769070033804922883/f5pW9a0q_normal.jpg">>},
+     {<<"profile_image_url_https">>,
+      <<"https://pbs.twimg.com/profile_images/769070033804922883/f5pW9a0q_normal.jpg">>},
+     {<<"profile_banner_url">>,
+      <<"https://pbs.twimg.com/profile_banners/767746267833180161/1472194390">>},
+     {<<"profile_link_color">>,<<"E81C4F">>},
+     {<<"profile_sidebar_border_color">>,<<"000000">>},
+     {<<"profile_sidebar_fill_color">>,<<"000000">>},
+     {<<"profile_text_color">>,<<"000000">>},
+     {<<"profile_use_background_image">>,false},
+     {<<"has_extended_profile">>,false},
+     {<<"default_profile">>,false},
+     {<<"default_profile_image">>,false},
+     {<<"following">>,false},
+     {<<"follow_request_sent">>,false},
+     {<<"notifications">>,false},
+     {<<"translator_type">>,<<"none">>}]}},
+  {<<"geo">>,null},
+  {<<"coordinates">>,null},
+  {<<"place">>,null},
+  {<<"contributors">>,null},
+  {<<"is_quote_status">>,false},
+  {<<"retweet_count">>,0},
+  {<<"favorite_count">>,0},
+  {<<"favorited">>,false},
+  {<<"retweeted">>,false},
+  {<<"possibly_sensitive">>,false},
+  {<<"possibly_sensitive_appealable">>,false},
+	      {<<"lang">>,<<"en">>}]},
+    {TweetBody}=Tweet,
+    ?assert(extract_urls(TweetBody)  =:= {"https://t.co/pHNV2XySXF","https://calendar.google.com"}).
 
 
 -endif.
