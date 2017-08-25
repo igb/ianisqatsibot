@@ -151,7 +151,7 @@ extract_urls([H|T], Acc)->
       {<<"expanded_url">>,ExpandedUrl},
       {<<"display_url">>,_},
       {<<"indices">>,_}]}=H,
-    NewAcc = lists:append(Acc, {binary_to_list(Url), binary_to_list(ExpandedUrl)}),
+    NewAcc = lists:append(Acc, [{binary_to_list(Url), binary_to_list(ExpandedUrl)}]),
     extract_urls(T, NewAcc);
 extract_urls([], NewAcc) ->
     NewAcc.
@@ -307,7 +307,7 @@ url_extraction_test()->
   {<<"possibly_sensitive_appealable">>,false},
 	      {<<"lang">>,<<"en">>}]},
     {TweetBody}=Tweet,
-    ?assert(extract_urls(TweetBody)  =:= {"https://t.co/pHNV2XySXF","https://calendar.google.com"}).
+    ?assert(extract_urls(TweetBody)  =:= [{"https://t.co/pHNV2XySXF","https://calendar.google.com"}]).
 
 
 -endif.
