@@ -107,7 +107,8 @@ run(AltTextSourceScreenName, BotScreenName, AltTexts)->
     TweetBody,
     io:format("~n~s~n", [TweetBody]),
     {Consumer, AccessToken, AccessSecret}=erlybird:get_secrets(),
-    erlybird:post(TweetBody, Consumer, AccessToken, AccessSecret).
+    X=erlybird:post(TweetBody, Consumer, AccessToken, AccessSecret),
+    io:format("~p~n", [X]).
 
 
 get_previous_tweets(ScreenName)->
@@ -127,9 +128,11 @@ get_tweet_texts(Tweets)->
 
 
 		      NonBinaryText = binary_to_list(Text),
-		      {ok, Mp}=re:compile("\\&amp;"),
-		      ReplacedText = re:replace(NonBinaryText, Mp, "\\&", [{return, list}]),
+
+		      ReplacedText = unescape_html(Text),
 		      ReplacedText,
+
+
 		      replace_urls(extract_urls(Tweet), ReplacedText)
 		      
 
@@ -139,6 +142,19 @@ get_tweet_texts(Tweets)->
 
 	      end, Tweets).
 
+
+unescape_html(Text)->
+    RegExes = [{"\\&amp;", "\\&"},
+     {"\\&lt;", "<"}],
+    unescape_html(Text, RegExes).
+    
+unescape_html(Text, [H|T])->
+    {Expression, Replacement}=H,
+    {ok, Mp}=re:compile(Expression),
+    ReplacedText = re:replace(Text, Mp, Replacement, [{return, list}, global]),
+    unescape_html(ReplacedText, T);
+unescape_html(Text, []) ->
+    Text.
 
 extract_urls(Tweet)->
     {<<"entities">>, {Entities}} = lists:keyfind(<<"entities">>, 1, Tweet),
@@ -215,6 +231,12 @@ get_alt_texts(ScreenName)->
 
 
 -ifdef(TEST).
+unescape_html_test()->
+    EscapedHtmlText = "Hello &amp; world &lt; Hello &amp;&amp; world&lt;&lt;.",
+    UnescapedHtmlText = unescape_html(EscapedHtmlText),
+    ExpectedHtmlText = "Hello & world < Hello && world<<.",
+    io:format("~p~n", [UnescapedHtmlText]),
+    ?assert(UnescapedHtmlText =:= ExpectedHtmlText).
 
 url_replacement_test()->
     ExpectedUrlText = "A screenshot displaying at least four, stacked Safari pop-ups, each reading: 'From \"https://calendar.google.com\":'.",

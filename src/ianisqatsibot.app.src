@@ -1,7 +1,7 @@
 {application, ianisqatsibot,
  [
   {description, "An Erlang twitter bot library"},
-  {vsn, "1"},
+  {vsn, "1.1"},
   {modules, [
              ianisqatsibot
             ]},
