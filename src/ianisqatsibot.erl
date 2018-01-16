@@ -1,5 +1,5 @@
 -module(ianisqatsibot).
--export([get_alt_texts/1,get_previous_tweets/1,init/0,get_tweet_texts/1,run/2,run/3,bootstrap/1,decode_from_file/1,encode_to_file/2,bootstrap_loop/3]).
+-export([get_alt_texts/1,get_previous_tweets/1,init/0,get_tweet_texts/1,run/2,run/3,bootstrap/1,decode_from_file/1,encode_to_file/2,bootstrap_loop/3, loop/2]).
 
 
 -ifdef(TEST).
@@ -19,6 +19,11 @@ bootstrap_loop(AltTextSourceScreenName, BotScreenName, FileName) ->
     run(AltTextSourceScreenName, BotScreenName, Alts),
     timer:sleep(1000 * 60 * 60 * 6), %DEFAULT INTERVAL OF ~6 HOURS...TODO: BASE THIS OFF OF LAST TWEET TIMESTAMP 
     bootstrap_loop(AltTextSourceScreenName, BotScreenName,FileName).
+
+loop(AltTextSourceScreenName, BotScreenName) ->
+    run(AltTextSourceScreenName, BotScreenName),
+    timer:sleep(1000 * 60 * 60 * 6), %DEFAULT INTERVAL OF ~6 HOURS...TODO: BASE THIS OFF OF LAST TWEET TIMESTAMP 
+    loop(AltTextSourceScreenName, BotScreenName).
 
 bootstrap(FileName) ->
     {ok, Device} = file:open(FileName, [read]),
@@ -105,11 +110,12 @@ run(AltTextSourceScreenName, BotScreenName, AltTexts)->
 		 end, ReversedAltTexts),
     [TweetBody|_] = FilteredReversedAltTexts,
     TweetBody,
+    [LastPostedTweet|_]=get_tweet_texts(PreviousTweets),
+    io:format("~n~s~n", [LastPostedTweet]),
     io:format("~n~s~n", [TweetBody]),
     {Consumer, AccessToken, AccessSecret}=erlybird:get_secrets(),
     X=erlybird:post(TweetBody, Consumer, AccessToken, AccessSecret),
     io:format("~p~n", [X]).
-
 
 get_previous_tweets(ScreenName)->
     {Consumer, AccessToken, AccessSecret}=erlybird:get_secrets(),
@@ -130,7 +136,6 @@ get_tweet_texts(Tweets)->
 		      NonBinaryText = binary_to_list(Text),
 
 		      ReplacedText = unescape_html(Text),
-		      ReplacedText,
 
 
 		      replace_urls(extract_urls(Tweet), ReplacedText)
@@ -176,7 +181,15 @@ extract_urls([], NewAcc) ->
 replace_urls([Urls|T], UnreplacedUrlText)->
     {Old, New}=Urls,
     {ok, Mp}=re:compile(Old),
-    ReplacedUrlText = re:replace(UnreplacedUrlText, Mp, New, [{return, list}]),
+   
+    % check for .app "URL" mis-encoding...
+    case string:sub_string(New, length(New) - 3) of
+	".app" ->
+	    CleanUrl = string:sub_string(New, 8, length(New));
+	_-> CleanUrl = New
+    end,
+    ReplacedUrlText = re:replace(UnreplacedUrlText, Mp, CleanUrl, [{return, list}]),    
+    
     replace_urls(T, ReplacedUrlText);
 replace_urls([],UnreplacedUrlText) ->
     UnreplacedUrlText.
@@ -211,7 +224,7 @@ get_alt_texts(ScreenName)->
     {Consumer, AccessToken, AccessSecret}=erlybird:get_secrets(),
     
     Timeline = erlybird:get_entire_timeline([{count, "200"},{include_ext_alt_text, "true"}, {screen_name, ScreenName}, {include_rts, "false"}], Consumer, AccessToken, AccessSecret, 15000),
-    AltTexts = lists:map(fun(X)->get_alt_text(X) end, Timeline),
+    AltTexts = lists:map(fun(X)-> {Y}=X,get_alt_text(Y) end, Timeline),
     FilteredAltTexts = lists:filter(fun(X) -> case X of
 							       false ->
 								   false;
