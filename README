@@ -1,6 +1,6 @@
 This is code for a Twitter bot that reads alt-texts from one Twitter account and posts them as standalone text-only tweets to another Twitter account.
 
-To build you'll need <a href="https://github.com/rebar/rebar">rebar</a> 
+To build you'll need the Erlang build tool rebar: https://github.com/rebar/rebar
 
 Build using:
 
