@@ -1,0 +1,13 @@
+This is code for a Twitter bot that reads alt-texts from one Twitter account and posts them as standalone text-only tweets to another Twitter account.
+
+To build you'll need <a href="https://github.com/rebar/rebar">rebar</a> 
+
+Build using:
+
+> rebar get-deps
+> rebar clean compile
+
+To run you can use something like:
+
+erl -pa ./ebin/ -pa ./deps/erlybird/ebin/ -pa ./deps/jiffy/ebin/ -pa  ./deps/oauth/ebin/ -s inets  -s ssl -consumer_key "YOUR_CONSUMER_KEY" -consumer_secret "YOUR_CONSUMER_SECRET" -access_token "YOUR_ACCESS_TOKEN" -access_token_secret "YOUR_ACCESS_TOKEN_SECRET" -eval 'ianisqatsibot:run("fromHandle", "toHandle")'.
+
