@@ -29,7 +29,6 @@ bootstrap(FileName) ->
     {ok, Device} = file:open(FileName, [read]),
     TweetIds = read_lines(Device, []),
     Alts=lists:map(fun(X)->  
-			   io:format("~p~n", [X]),
 			   timer:sleep(1000),
 			   {Tweet}=erlybird:get_tweet(X, [{"include_ext_alt_text", "true"}]),
 			   case lists:keyfind(<<"retweeted_status">>, 1, Tweet) of
@@ -126,25 +125,8 @@ get_tweet_texts(Tweets)->
     lists:map(fun(X)->  
 		      {Tweet} = X,
 		      {<<"text">>, Text} = lists:keyfind(<<"text">>, 1, Tweet),
-		      
-		      % sanitize &amp;
-		      
-		      
-
-
-
-		      NonBinaryText = binary_to_list(Text),
-
 		      ReplacedText = unescape_html(Text),
-
-
 		      replace_urls(extract_urls(Tweet), ReplacedText)
-		      
-
-
-			  
-			  
-
 	      end, Tweets).
 
 
@@ -222,22 +204,21 @@ get_alt_text(Tweet)->
 
 get_alt_texts(ScreenName)->
     {Consumer, AccessToken, AccessSecret}=erlybird:get_secrets(),
-    
     Timeline = erlybird:get_entire_timeline([{count, "200"},{include_ext_alt_text, "true"}, {screen_name, ScreenName}, {include_rts, "false"}], Consumer, AccessToken, AccessSecret, 15000),
     AltTexts = lists:map(fun(X)-> {Y}=X,get_alt_text(Y) end, Timeline),
     FilteredAltTexts = lists:filter(fun(X) -> case X of
-							       false ->
-								   false;
-								null ->
-								    false;
-							       _ ->
-								   true
-							   end
+						  false ->
+						      false;
+						  null ->
+						      false;
+						  _ ->
+						      true
+					      end
 				    end, lists:flatten(AltTexts)),
     
     lists:map(fun(X)-> io_lib:format("~s", [X]) end, lists:filter(fun(X)->
-			 iolist_size(X) =< 140
-		 end, FilteredAltTexts)).
+									  iolist_size(X) =< 140
+								  end, FilteredAltTexts)).
     
     
 
