@@ -91,7 +91,22 @@ read_lines(Device, Acc)->
 		
          
 
-
+is_same_or_similar_to_previous_tweet(CandidateTweet, PreviousTweets)->
+    io:format("checking ~p~n", [CandidateTweet]),
+    SimilarityCheck = lists:foldl(fun(X, Acc) ->
+			EditDistance = levenshtein:levenshtein_distance(CandidateTweet, X),
+%			io:format("edit distance is ~p~n",[EditDistance]),
+			case EditDistance < 10 of
+			    true -> Acc + 1;
+			    false  -> Acc
+			end
+		end, 0, PreviousTweets),
+    case SimilarityCheck of
+	0 ->
+	    true;
+	_ -> false
+    end.
+									    
 run(AltTextSourceScreenName, BotScreenName)->
     AltTexts=lists:map(fun(X)-> [Y]=X, Y end, get_alt_texts(AltTextSourceScreenName)),
     run(AltTextSourceScreenName, BotScreenName,AltTexts).
@@ -99,23 +114,21 @@ run(AltTextSourceScreenName, BotScreenName)->
 run(AltTextSourceScreenName, BotScreenName, AltTexts)->
     PreviousTweets = get_previous_tweets(BotScreenName),
   
-    PreviousTweetsSet = sets:from_list(get_tweet_texts(PreviousTweets)),
-  
-   
-    
+    PreviousTweetsTexts = get_tweet_texts(PreviousTweets),
     ReversedAltTexts = lists:reverse(AltTexts),
+
     FilteredReversedAltTexts = lists:filter(fun(X)->
-			 not sets:is_element(X, PreviousTweetsSet)
+		 is_same_or_similar_to_previous_tweet(X, PreviousTweetsTexts)	 
 		 end, ReversedAltTexts),
     [TweetBody|_] = FilteredReversedAltTexts,
     TweetBody,
     [LastPostedTweet|_]=get_tweet_texts(PreviousTweets),
-    io:format("~n~s~n", [LastPostedTweet]),
-    io:format("~n~s~n", [TweetBody]),
+    io:format("A:~n~s~n", [LastPostedTweet]),
+    io:format("B:~n~s~n", [TweetBody]),
     {Consumer, AccessToken, AccessSecret}=erlybird:get_secrets(),
-    X=erlybird:post(TweetBody, Consumer, AccessToken, AccessSecret),
-    io:format("~p~n", [X]).
-
+%    X=erlybird:post(TweetBody, Consumer, AccessToken, AccessSecret),
+%    io:format("~p~n", [X]),
+    ok.
 get_previous_tweets(ScreenName)->
     {Consumer, AccessToken, AccessSecret}=erlybird:get_secrets(),
     Timeline = erlybird:get_entire_timeline([{count, "200"},{include_ext_alt_text, "true"}, {screen_name, ScreenName}, {include_rts, "false"}], Consumer, AccessToken, AccessSecret),
