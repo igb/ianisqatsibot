@@ -126,8 +126,8 @@ run(AltTextSourceScreenName, BotScreenName, AltTexts)->
     io:format("A:~n~s~n", [LastPostedTweet]),
     io:format("B:~n~s~n", [TweetBody]),
     {Consumer, AccessToken, AccessSecret}=erlybird:get_secrets(),
-%    X=erlybird:post(TweetBody, Consumer, AccessToken, AccessSecret),
-%    io:format("~p~n", [X]),
+    X=erlybird:post(TweetBody, Consumer, AccessToken, AccessSecret),
+    io:format("~p~n", [X]),
     ok.
 get_previous_tweets(ScreenName)->
     {Consumer, AccessToken, AccessSecret}=erlybird:get_secrets(),
