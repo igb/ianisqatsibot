@@ -1,4 +1,4 @@
-FROM scratch
+FROM erlang:22
 
 ENV APP_DIR="ianisqatsibot"
 
