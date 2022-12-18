@@ -1,5 +1,5 @@
 -module(ianisqatsibot).
--export([get_alt_texts/1,get_previous_tweets/1,init/0,get_tweet_texts/1,run/2,run/3,bootstrap/1,decode_from_file/1,encode_to_file/2,bootstrap_loop/3, loop/2]).
+-export([get_alt_texts/1,get_previous_tweets/1,init/0,get_tweet_texts/1,run/2,run/3,bootstrap/1,decode_from_file/1,encode_to_file/2,bootstrap_loop/3, loop/2,  mloop/2]).
 
 
 -ifdef(TEST).
@@ -24,6 +24,14 @@ loop(AltTextSourceScreenName, BotScreenName) ->
     run(AltTextSourceScreenName, BotScreenName),
     timer:sleep(1000 * 60 * 60 * 6), %DEFAULT INTERVAL OF ~6 HOURS...TODO: BASE THIS OFF OF LAST TWEET TIMESTAMP 
     loop(AltTextSourceScreenName, BotScreenName).
+
+%MASTODON ENTRY POINT
+mloop(AltTextSourceScreenName, BotScreenName) ->
+    mrun(AltTextSourceScreenName, BotScreenName),
+    timer:sleep(1000 * 60 * 60 * 6), %DEFAULT INTERVAL OF ~6 HOURS...TODO: BASE THIS OFF OF LAST TWEET TIMESTAMP 
+    loop(AltTextSourceScreenName, BotScreenName).
+
+
 
 bootstrap(FileName) ->
     {ok, Device} = file:open(FileName, [read]),
@@ -129,6 +137,37 @@ run(AltTextSourceScreenName, BotScreenName, AltTexts)->
     X=erlybird:post(TweetBody, Consumer, AccessToken, AccessSecret),
     io:format("~p~n", [X]),
     ok.
+
+
+
+%MASTODON PATH
+mrun(AltTextSourceScreenName, BotScreenName)->
+    AltTexts=lists:map(fun(X)-> [Y]=X, Y end, get_alt_texts(AltTextSourceScreenName)),
+    mrun(AltTextSourceScreenName, BotScreenName,AltTexts).
+
+
+%MASTODON PATH
+mrun(AltTextSourceScreenName, BotScreenName, AltTexts)->
+    PreviousTweets = get_previous_tweets(BotScreenName),
+  
+    PreviousTweetsTexts = get_tweet_texts(PreviousTweets),
+    ReversedAltTexts = lists:reverse(AltTexts),
+
+    FilteredReversedAltTexts = lists:filter(fun(X)->
+		 is_same_or_similar_to_previous_tweet(X, PreviousTweetsTexts)	 
+		 end, ReversedAltTexts),
+    [TweetBody|_] = FilteredReversedAltTexts,
+    TweetBody,
+    [LastPostedTweet|_]=get_tweet_texts(PreviousTweets),
+    io:format("A:~n~s~n", [LastPostedTweet]),
+    io:format("B:~n~s~n", [TweetBody]),
+    {Consumer, AccessToken, AccessSecret}=erlybird:get_secrets(),
+    X=erlybird:post(TweetBody, Consumer, AccessToken, AccessSecret),
+    io:format("~p~n", [X]),
+    ok.
+
+
+
 get_previous_tweets(ScreenName)->
     {Consumer, AccessToken, AccessSecret}=erlybird:get_secrets(),
     Timeline = erlybird:get_entire_timeline([{count, "200"},{include_ext_alt_text, "true"}, {screen_name, ScreenName}, {include_rts, "false"}], Consumer, AccessToken, AccessSecret),
