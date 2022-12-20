@@ -1,5 +1,5 @@
 -module(ianisqatsibot).
--export([get_alt_texts/1,get_previous_tweets/1,init/0,get_tweet_texts/1,run/2,run/3,bootstrap/1,decode_from_file/1,encode_to_file/2,bootstrap_loop/3, loop/2,  mloop/2]).
+-export([get_alt_texts/1,get_previous_tweets/1,init/0,get_tweet_texts/1,run/2,run/3,bootstrap/1,decode_from_file/1,encode_to_file/2,bootstrap_loop/3, loop/2,  mloop/3]).
 
 
 -ifdef(TEST).
@@ -26,10 +26,10 @@ loop(AltTextSourceScreenName, BotScreenName) ->
     loop(AltTextSourceScreenName, BotScreenName).
 
 %MASTODON ENTRY POINT
-mloop(AltTextSourceScreenName, BotScreenName) ->
-    mrun(AltTextSourceScreenName, BotScreenName),
+mloop(AltTextSourceScreenName, BotScreenName, MastodonUrl) ->
+    mrun(AltTextSourceScreenName, BotScreenName, MastodonUrl),
     timer:sleep(1000 * 60 * 60 * 6), %DEFAULT INTERVAL OF ~6 HOURS...TODO: BASE THIS OFF OF LAST TWEET TIMESTAMP 
-    loop(AltTextSourceScreenName, BotScreenName).
+    mloop(AltTextSourceScreenName, BotScreenName, MastodonUrl).
 
 
 
@@ -141,16 +141,19 @@ run(AltTextSourceScreenName, BotScreenName, AltTexts)->
 
 
 %MASTODON PATH
-mrun(AltTextSourceScreenName, BotScreenName)->
+mrun(AltTextSourceScreenName, BotId, MastodonUrl)->
     AltTexts=lists:map(fun(X)-> [Y]=X, Y end, get_alt_texts(AltTextSourceScreenName)),
-    mrun(AltTextSourceScreenName, BotScreenName,AltTexts).
+    mrun(AltTextSourceScreenName, BotId,AltTexts, MastodonUrl).
 
 
 %MASTODON PATH
-mrun(AltTextSourceScreenName, BotScreenName, AltTexts)->
-    PreviousTweets = get_previous_tweets(BotScreenName),
+mrun(AltTextSourceScreenName, BotId, AltTexts, MastodonUrl)->
+    PreviousTweets = get_previous_toots(BotId, MastodonUrl),
   
-    PreviousTweetsTexts = get_tweet_texts(PreviousTweets),
+    io:format("XXX~p~n", [PreviousTweets]),
+    PreviousTweetsTexts = get_toot_texts(PreviousTweets),
+
+    io:format("YYY~p~n", [PreviousTweetsTexts]),
     ReversedAltTexts = lists:reverse(AltTexts),
 
     FilteredReversedAltTexts = lists:filter(fun(X)->
@@ -158,15 +161,30 @@ mrun(AltTextSourceScreenName, BotScreenName, AltTexts)->
 		 end, ReversedAltTexts),
     [TweetBody|_] = FilteredReversedAltTexts,
     TweetBody,
-    [LastPostedTweet|_]=get_tweet_texts(PreviousTweets),
+    [LastPostedTweet|_]=PreviousTweetsTexts,
     io:format("A:~n~s~n", [LastPostedTweet]),
     io:format("B:~n~s~n", [TweetBody]),
-    {Consumer, AccessToken, AccessSecret}=erlybird:get_secrets(),
-    X=erlybird:post(TweetBody, Consumer, AccessToken, AccessSecret),
+    {AuthToken}=tooterl:get_secrets(),
+    X=tooterl:toot(TweetBody, AuthToken, MastodonUrl),
     io:format("~p~n", [X]),
     ok.
 
+% MASTODON PATH
+get_previous_toots(BotId, MastodonUrl)->
+    {AuthToken}=tooterl:get_secrets(),
+    tooterl:get_statuses(BotId, AuthToken, MastodonUrl).
 
+% MASTODON PATH
+get_toot_texts(Toots)->
+    lists:map(fun(X)->  
+		      {Toot} = X,
+		      {<<"content">>, Text} = lists:keyfind(<<"content">>, 1, Toot),
+		      unescape_html(demastofy(Text))
+	      end, Toots).
+
+%MASTODON PATH
+demastofy(Text)->    
+    binary:part(Text, 3, byte_size(Text) - 7).
 
 get_previous_tweets(ScreenName)->
     {Consumer, AccessToken, AccessSecret}=erlybird:get_secrets(),
