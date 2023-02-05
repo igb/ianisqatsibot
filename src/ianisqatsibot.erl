@@ -166,7 +166,8 @@ mrun(AltTextSourceScreenName, BotId, AltTexts, MastodonUrl)->
     io:format("B:~n~s~n", [TweetBody]),
     {AuthToken}=tooterl:get_secrets(),
     X=tooterl:toot(TweetBody, AuthToken, MastodonUrl),
-    io:format("~p~n", [X]),
+  %  X="dummy",
+ io:format("~p~n", [X]),
     ok.
 
 % MASTODON PATH
@@ -179,12 +180,12 @@ get_toot_texts(Toots)->
     lists:map(fun(X)->  
 		      {Toot} = X,
 		      {<<"content">>, Text} = lists:keyfind(<<"content">>, 1, Toot),
-		      unescape_html(demastofy(Text))
+		      demastofy(Text)
 	      end, Toots).
 
 %MASTODON PATH
 demastofy(Text)->    
-    binary:part(Text, 3, byte_size(Text) - 7).
+    binary_to_list(binary:part(Text, 3, byte_size(Text) - 7)).
 
 get_previous_tweets(ScreenName)->
     {Consumer, AccessToken, AccessSecret}=erlybird:get_secrets(),
