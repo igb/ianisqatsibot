@@ -166,7 +166,7 @@ mrun(AltTextSourceScreenName, BotId, AltTexts, MastodonUrl)->
     io:format("B:~n~s~n", [TweetBody]),
     {AuthToken}=tooterl:get_secrets(),
     X=tooterl:toot(TweetBody, AuthToken, MastodonUrl),
-  %  X="dummy",
+    %X="dummy",
  io:format("~p~n", [X]),
     ok.
 
@@ -180,7 +180,7 @@ get_toot_texts(Toots)->
     lists:map(fun(X)->  
 		      {Toot} = X,
 		      {<<"content">>, Text} = lists:keyfind(<<"content">>, 1, Toot),
-		      demastofy(Text)
+		      unescape_html(demastofy(Text))
 	      end, Toots).
 
 %MASTODON PATH
@@ -203,7 +203,8 @@ get_tweet_texts(Tweets)->
 
 unescape_html(Text)->
     RegExes = [{"\\&amp;", "\\&"},
-     {"\\&lt;", "<"}],
+     {"\\&lt;", "<"},
+     {"\\&quot;", "\""}],
     unescape_html(Text, RegExes).
     
 unescape_html(Text, [H|T])->
