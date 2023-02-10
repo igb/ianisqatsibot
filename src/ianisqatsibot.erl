@@ -165,8 +165,8 @@ mrun(AltTextSourceScreenName, BotId, AltTexts, MastodonUrl)->
     io:format("A:~n~s~n", [LastPostedTweet]),
     io:format("B:~n~s~n", [TweetBody]),
     {AuthToken}=tooterl:get_secrets(),
-    %X=tooterl:toot(TweetBody, AuthToken, MastodonUrl),
-    X="dummy",
+    X=tooterl:toot(TweetBody, AuthToken, MastodonUrl),
+    %X="dummy",
  io:format("~p~n", [X]),
     ok.
 
