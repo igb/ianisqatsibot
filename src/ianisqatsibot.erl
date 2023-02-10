@@ -165,8 +165,8 @@ mrun(AltTextSourceScreenName, BotId, AltTexts, MastodonUrl)->
     io:format("A:~n~s~n", [LastPostedTweet]),
     io:format("B:~n~s~n", [TweetBody]),
     {AuthToken}=tooterl:get_secrets(),
-    X=tooterl:toot(TweetBody, AuthToken, MastodonUrl),
-    %X="dummy",
+    %X=tooterl:toot(TweetBody, AuthToken, MastodonUrl),
+    X="dummy",
  io:format("~p~n", [X]),
     ok.
 
@@ -204,7 +204,8 @@ get_tweet_texts(Tweets)->
 unescape_html(Text)->
     RegExes = [{"\\&amp;", "\\&"},
      {"\\&lt;", "<"},
-     {"\\&quot;", "\""}],
+     {"\\&quot;", "\""},
+     {"\\&#39;", "'"}],
     unescape_html(Text, RegExes).
     
 unescape_html(Text, [H|T])->
